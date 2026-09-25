@@ -28,6 +28,17 @@ public class Application {
             int number = Integer.parseInt(request.getValue("value"));
             return String.valueOf(number * number);
         });
+        
+        get("/slow", (request, response) -> {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "Slow response done";
+        });
+
+        
         String environment = System.getenv().getOrDefault("APP_ENV", "development");
         
         if(environment.equals("development")){

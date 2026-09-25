@@ -3,17 +3,15 @@ package co.edu.eci.virtualizationframework;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ExecutorService; 
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -23,6 +21,7 @@ public class HttpServer {
 
     private static final int DEFAULT_PORT = 8080;
     private static final StaticFileService staticFileService = new StaticFileService();
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     /** Puerto de entrada del servidor, resuelve el puerto que se va a usar y 
      *  acepta conexiones
@@ -42,16 +41,26 @@ public class HttpServer {
         System.out.println("Ready to receive on port " + port + "...");
         
         while(ServidorWebMantenible.isRunning()){
-            try (Socket clientSocket = serverSocket.accept()){
-                handleRequest(clientSocket);
+            try {
+                Socket clientSocket = serverSocket.accept();
+                executor.submit(() -> handleClient(clientSocket));
             }catch (IOException e) {
                 System.out.println("Error atendiendo una solicitud: " + e.getMessage());
             }catch (RuntimeException e) {
                 System.out.println("Error inesperado atendiendo una solicitud: " + e.getMessage());
             }
         }
+        executor.shutdown();
         serverSocket.close();
         System.out.println("Server stopped gracefully.");
+    }
+    
+    private static void handleClient(Socket clientSocket) {
+        try (clientSocket) {
+            handleRequest(clientSocket);
+        } catch (IOException e) {
+            System.out.println("Error atendiendo una solicitud: " + e.getMessage());
+        }
     }
     
     /**Determina el puerto que usara el servidor, siguiendo la prioridad de
